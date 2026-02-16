@@ -24,7 +24,7 @@
                                     <input type="checkbox" class="sr-only peer" v-model="selectAll" @change="toggleAll">
                                     <div class="w-3 h-3 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
                                 </div>
-                                <span class="text-lg font-medium text-gray-800">เลือกทั้งหมด</span>
+                                <span class="text-lg font-medium text-gray-800">ลบข้อมูลบัญชี</span>
                             </label>
 
                             <!-- รายการข้อมูลย่อยที่จะลบ -->
@@ -52,21 +52,51 @@
                         <!-- ปุ่มลบ -->
                         <div class="flex justify-end mt-12">
                             <button 
-                                @click="handleDelete"
+                                @click="showConfirmModal = true"
                                 :disabled="isLoading || selectedItems.length === 0"
-                                class="bg-red-600 text-white px-10 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md text-lg disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
+                                class="bg-red-700 text-white px-10 py-2 rounded-md font-semibold hover:bg-red-800 transition-colors shadow-md text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                <!-- ถ้ากำลังโหลดให้ขึ้นข้อความอีกแบบ -->
-                                <span v-if="isLoading">กำลังดำเนินการ...</span>
-                                <span v-else>ลบ</span>
+                                ลบ
                             </button>
                         </div>
                     </div>
                 </main>
             </div>
-        </div>
 
-        <VehicleModal :show="isModalOpen" @close="closeAndRefresh" />
+            <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+                <div class="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] p-8 max-w-sm w-full mx-4 border border-gray-200 pointer-events-auto">
+                    <h2 class="text-xl font-bold text-center text-gray-900 mb-4">
+                        คุณต้องการลบข้อมูลที่เลือกใช่หรือไม่
+                    </h2>
+        
+                    <p class="text-sm text-center text-gray-600 mb-2">พิมพ์ <span class="font-bold text-red-600">confirm</span> เพื่อยืนยันการลบ</p>
+                    
+                    <!-- ช่องกรอกข้อความ confirm -->
+                    <input 
+                        type="text" 
+                        v-model="confirmInput"
+                        placeholder="confirm"
+                        class="w-full border border-gray-300 rounded-md px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                    />
+        
+                    <div class="flex justify-between space-x-3">
+                        <button 
+                            @click="closeModal"
+                            class="flex-1 bg-gray-400 text-white py-2 rounded-md text-lg font-bold hover:bg-gray-500 transition-colors"
+                        >
+                            ไม่ใช่
+                        </button>
+                        <button 
+                            @click="confirmDelete"
+                            :disabled="confirmInput !== 'confirm'"
+                            class="flex-1 bg-[#3B82F6] text-white py-2 rounded-md text-lg font-bold hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                        >
+                            ใช่
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -77,14 +107,14 @@ const selectAll = ref(false)
 const selectedItems = ref([]) // เก็บ index หรือ id ของสิ่งที่จะลบ
 const sendEmail = ref(false)
 const isLoading = ref(false) // เพิ่มสถานะ Loading
+const showConfirmModal = ref(false)
+const confirmInput = ref('')
 
 // รายละเอียดรายการย่อย (แนะนำว่าในใช้งานจริงควรมี 'id')
 const dataItems = ref([
-    { id: 1, name: 'ประวัติการเข้าชม' },
-    { id: 2, name: 'ข้อมูลส่วนตัวบางส่วน' },
-    { id: 3, name: 'รายการโปรด' },
-    { id: 4, name: 'ข้อมูลการค้นหา' },
-    { id: 5, name: 'คุกกี้และแคช' }
+    { id: 1, name: 'ข้อมูลยานพาหนะ' },
+    { id: 2, name: 'ข้อมูลเส้นทาง' },
+    { id: 3, name: 'ข้อมูลการจอง' },
 ])
 
 const toggleAll = () => {
@@ -104,37 +134,55 @@ watch(selectedItems, (newVal) => {
     }
 }, { deep: true })
 
-const handleDelete = async () => {
-    if (selectedItems.value.length === 0) {
-        alert('กรุณาเลือกข้อมูลที่ต้องการลบอย่างน้อย 1 รายการ')
-        return
-    }
+const openModal = () => {
+    confirmInput.value = '' // ล้างค่าเก่าทิ้งก่อนเปิด modal
+    showConfirmModal.value = true
+}
 
-    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลที่เลือก (${selectedItems.value.length} รายการ)?`)) {
-        try {
-            isLoading.value = true // เริ่มต้นการโหลด
-      
-            // การเชื่อมต่อ Backend (ตัวอย่างใช้ $fetch ของ Nuxt)
-            const response = await $fetch('/api/delete-data', {
-                method: 'POST',
-                body: {
-                    itemIds: selectedItems.value,
-                    endEmailConfirmation: sendEmail.value
-                }
-            })
+const closeModal = () => {
+    showConfirmModal.value = false
+    confirmInput.value = ''
+}
 
-            // ถ้าลบสำเร็จ
-            alert('ลบข้อมูลเรียบร้อยแล้ว')
-            // อาจจะทำการอัปเดต UI หรือ Reset ค่า
-            selectedItems.value = []
-            selectAll.value = false
-      
-        } catch (error) {
-            console.error('เกิดข้อผิดพลาดในการลบ:', error)
-            alert('ไม่สามารถลบข้อมูลได้ในขณะนี้ กรุณาลองใหม่ภายหลัง')
-        } finally {
-            isLoading.value = false // สิ้นสุดการโหลด
-        }
+const confirmDelete = async () => {
+    if (confirmInput.value !== 'confirm') return
+
+    showConfirmModal.value = false
+    isLoading.value = true
+    
+    try {
+        await $fetch('/api/delete-data', {
+            method: 'POST',
+            body: {
+                itemIds: selectedItems.value,
+                sendEmailConfirmation: sendEmail.value
+            }
+        })
+        alert('ลบข้อมูลเรียบร้อยแล้ว')
+        selectedItems.value = []
+        selectAll.value = false
+        confirmInput.value = ''
+    } catch (error) {
+        console.error('Error:', error)
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์')
+    } finally {
+        isLoading.value = false
     }
 }
+
+watch(showConfirmModal, (newVal) => {
+    if (!newVal) {
+        confirmInput.value = '' // ล้างข้อความในช่องกรอกทันทีที่ Modal ปิด
+    }
+})
 </script>
+
+<style scoped>
+.fixed {
+    animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
