@@ -27,19 +27,19 @@
                                 <span class="text-lg font-medium text-gray-800">เลือกทั้งหมด</span>
                             </label>
 
-                            <!-- รายการข้อมูลย่อย (สีดำตามรูป) -->
+                            <!-- รายการข้อมูลย่อยที่จะลบ -->
                             <div class="ml-4 space-y-4">
                                 <label v-for="(item, index) in dataItems" :key="index" class="flex items-center space-x-3 cursor-pointer group">
                                     <div class="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center group-hover:border-blue-500 transition-colors">
-                                        <input type="checkbox" class="sr-only peer" v-model="selectedItems" :value="index">
+                                        <!-- แก้ไข :value ให้เป็น item.id -->
+                                        <input type="checkbox" class="sr-only peer" v-model="selectedItems" :value="item.id">
                                         <div class="w-3 h-3 bg-blue-500 rounded-full opacity-0 peer-checked:opacity-100 transition-opacity"></div>
                                     </div>
-                                    <!-- ส่วนที่เป็นขีดสีดำตามรูป -->
                                     <span class="text-gray-800 font-medium">{{ item.name }}</span>
                                 </label>
                             </div>
 
-                            <!-- ส่วนท้าย: รับรายละเอียดทาง Email -->
+                            <!-- รับรายละเอียดทาง Email -->
                             <label class="flex items-center space-x-3 cursor-pointer group pt-4">
                                 <div class="w-5 h-5 border-2 border-gray-400 rounded-full flex items-center justify-center group-hover:border-blue-500 transition-colors">
                                     <input type="checkbox" class="sr-only peer" v-model="sendEmail">
@@ -49,13 +49,16 @@
                             </label>
                         </div>
 
-                        <!-- ปุ่มลบด้านล่างขวา -->
+                        <!-- ปุ่มลบ -->
                         <div class="flex justify-end mt-12">
                             <button 
                                 @click="handleDelete"
-                                class="bg-red-600 text-white px-10 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md text-lg"
+                                :disabled="isLoading || selectedItems.length === 0"
+                                class="bg-red-600 text-white px-10 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md text-lg disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center"
                             >
-                                ลบ
+                                <!-- ถ้ากำลังโหลดให้ขึ้นข้อความอีกแบบ -->
+                                <span v-if="isLoading">กำลังดำเนินการ...</span>
+                                <span v-else>ลบ</span>
                             </button>
                         </div>
                     </div>
@@ -68,38 +71,70 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const selectAll = ref(false)
-const selectedItems = ref([])
+const selectedItems = ref([]) // เก็บ index หรือ id ของสิ่งที่จะลบ
 const sendEmail = ref(false)
+const isLoading = ref(false) // เพิ่มสถานะ Loading
 
-// ข้อมูลจำลองตามรูปที่คุณให้มา (รูปขีดสีดำ)
+// รายละเอียดรายการย่อย (แนะนำว่าในใช้งานจริงควรมี 'id')
 const dataItems = ref([
-  { name: 'Example1' },
-  { name: 'Example2' },
-  { name: 'Example3' },
-  { name: 'Example4' },
-  { name: 'Example5' }
+    { id: 1, name: 'ประวัติการเข้าชม' },
+    { id: 2, name: 'ข้อมูลส่วนตัวบางส่วน' },
+    { id: 3, name: 'รายการโปรด' },
+    { id: 4, name: 'ข้อมูลการค้นหา' },
+    { id: 5, name: 'คุกกี้และแคช' }
 ])
 
 const toggleAll = () => {
-  if (selectAll.value) {
-    selectedItems.value = dataItems.value.map((_, index) => index)
-  } else {
-    selectedItems.value = []
-  }
+    if (selectAll.value) {
+        // เก็บเป็น ID เพื่อส่งไปให้ Backend
+        selectedItems.value = dataItems.value.map(item => item.id)
+    } else {
+        selectedItems.value = []
+    }
 }
 
-const handleDelete = () => {
-  if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลที่เลือก?')) {
-    console.log('ข้อมูลที่จะลบ:', selectedItems.value)
-    console.log('ส่งเมล์ยืนยัน:', sendEmail.value)
-    // เพิ่ม Logic การส่งคำขอไป Backend ที่นี่
-  }
+watch(selectedItems, (newVal) => {
+    if (newVal.length === dataItems.value.length) {
+        selectAll.value = true
+    } else {
+        selectAll.value = false
+    }
+}, { deep: true })
+
+const handleDelete = async () => {
+    if (selectedItems.value.length === 0) {
+        alert('กรุณาเลือกข้อมูลที่ต้องการลบอย่างน้อย 1 รายการ')
+        return
+    }
+
+    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลที่เลือก (${selectedItems.value.length} รายการ)?`)) {
+        try {
+            isLoading.value = true // เริ่มต้นการโหลด
+      
+            // การเชื่อมต่อ Backend (ตัวอย่างใช้ $fetch ของ Nuxt)
+            const response = await $fetch('/api/delete-data', {
+                method: 'POST',
+                body: {
+                    itemIds: selectedItems.value,
+                    endEmailConfirmation: sendEmail.value
+                }
+            })
+
+            // ถ้าลบสำเร็จ
+            alert('ลบข้อมูลเรียบร้อยแล้ว')
+            // อาจจะทำการอัปเดต UI หรือ Reset ค่า
+            selectedItems.value = []
+            selectAll.value = false
+      
+        } catch (error) {
+            console.error('เกิดข้อผิดพลาดในการลบ:', error)
+            alert('ไม่สามารถลบข้อมูลได้ในขณะนี้ กรุณาลองใหม่ภายหลัง')
+        } finally {
+            isLoading.value = false // สิ้นสุดการโหลด
+        }
+    }
 }
 </script>
-
-<style scoped>
-/* คุณสามารถเพิ่ม CSS ตกแต่งเพิ่มเติมได้ที่นี่ */
-</style>
