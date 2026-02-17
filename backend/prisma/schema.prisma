@@ -129,9 +129,6 @@ model DriverVerification {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
   
-  // เพิ่ม
-  isDeleted   Boolean  @default(false)
-
   isDeleted   Boolean  @default(false)
 
   @@index([status])
@@ -212,9 +209,6 @@ model Route {
   createdAt       DateTime    @default(now())
   updatedAt     DateTime @updatedAt
   
-  // เพิ่ม
-  isCancelled Boolean @default(false)
-  cancelReason String?
 
   isCancelled Boolean @default(false)
   cancelReason String?

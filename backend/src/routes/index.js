@@ -12,7 +12,6 @@ const bookingRoutes = require('./booking.routes');
 
 const deleteRoutes = require('./delete.routes');
 
-const router = express.Router();
 const notificationRoutes = require('./notification.routes');
 const mapRoutes = require('./maps.routes');
 const adminRoutes = require('./admin');

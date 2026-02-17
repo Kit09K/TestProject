@@ -11,6 +11,9 @@ class DeleteController {
     // POST /delete/account
     static softDeleteUser = asyncHandler(async (req, res) => {
         const userId = req.user.id;
+        if(userId == null){
+            console.log("Help me Pls");
+        }
         const email = req.user.email;
         const {
             deleteAccount,
@@ -45,19 +48,19 @@ class DeleteController {
             const deleteRequest = await DeleteService.getDeleteRequestByUserId(userId);
             if (deleteRequest.deleteAccount) {
                 backupData.userData = await UserService.getUserById(userId);
-                await DeleteService.markDeleteUserData(userId, deleteRequest);
+                await DeleteService.markDeleteUserData(userId);
             }
             if (deleteRequest.deleteVehicles) {
                 backupData.vehicles = await VehicleService.getAllVehicles(userId);
-                await DeleteService.markDeleteVehicles(userId, deleteRequest);
+                await DeleteService.markDeleteVehicles(userId);
             }
             if (deleteRequest.deleteRoutes && req.user.role === 'DRIVER') {
                 backupData.routes = await RouteService.getMyRoutes(userId);
-                await DeleteService.markDeleteRoutes(userId, deleteRequest);
+                await DeleteService.markDeleteRoutes(userId);
             }
             if (deleteRequest.deleteBookings) {
                 backupData.bookings = await BookingService.getMyBookings(userId);
-                await DeleteService.markDeleteBookings(userId, deleteRequest);
+                await DeleteService.markDeleteBookings(userId);
             }
 
             if (deleteRequest.sendEmailCopy) {
