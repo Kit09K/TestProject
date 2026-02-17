@@ -123,6 +123,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useAuth } from '@/composables/useAuth'
 
 const selectAll = ref(false)
 const selectedItems = ref([]) // เก็บ index หรือ id ของสิ่งที่จะลบ
@@ -130,6 +131,8 @@ const sendEmail = ref(false)
 const isLoading = ref(false) // เพิ่มสถานะ Loading
 const showConfirmModal = ref(false)
 const confirmInput = ref('')
+const { $api } = useNuxtApp()
+const { logout } = useAuth()
 
 // รายละเอียดรายการย่อย (แนะนำว่าในใช้งานจริงควรมี 'id')
 const dataItems = ref([
@@ -200,17 +203,32 @@ const confirmDelete = async () => {
     isLoading.value = true
     
     try {
-        await $fetch('/api/delete-data', {
-            method: 'POST',
-            body: {
-                itemIds: selectedItems.value,
-                sendEmailConfirmation: sendEmail.value
-            }
-        })
+
+        const token = useCookie('token').value || (process.client ? localStorage.getItem('token') : '')
+
+        await $api('/delete/account', {
+
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`
+        },
+        body: {
+            deleteAccount: selectAll.value,
+            deleteVehicles: selectedItems.value.includes(1),
+            deleteRoutes: selectedItems.value.includes(2),
+            deleteBookings: selectedItems.value.includes(3),
+            sendEmailCopy: sendEmail.value
+        }
+    })
+        
+    if (selectAll.value) {
+        logout()
         alert('ลบข้อมูลเรียบร้อยแล้ว')
         selectedItems.value = []
         selectAll.value = false
         confirmInput.value = ''
+    }
+
     } catch (error) {
         console.error('Error:', error)
         alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์')

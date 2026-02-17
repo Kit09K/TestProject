@@ -24,8 +24,7 @@ const login = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Invalid credentials");
     }
 
-
-    const token = signToken({ sub: user.id, role: user.role });
+    const token = signToken({ sub: user.id, role: user.role, email: user.email });
 
     try {
         await prisma.systemLog.create({
@@ -55,10 +54,21 @@ const login = asyncHandler(async (req, res) => {
     }
 
     const {
-        password: _,
+        password:_,
+        gender,
+        phoneNumber,
         otpCode,
-        nationalIdNumber, 
+        nationalIdNumber,
         nationalIdPhotoUrl,
+        nationalIdExpiryDate,
+        selfiePhotoUrl,
+        isVerified,
+        isActive,
+        lastLogin,
+        createdAt,
+        updatedAt,
+        username:__,
+        email:___,
         ...safeUser
     } = user;
 

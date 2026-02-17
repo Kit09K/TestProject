@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+require('./src/utils/HardDelete');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -8,6 +8,7 @@ const promClient = require('prom-client');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./src/config/swagger');
 const routes = require('./src/routes');
+const deleteRoutes = require('./src/routes/delete.routes');
 const { errorHandler } = require('./src/middlewares/errorHandler');
 const ApiError = require('./src/utils/ApiError')
 const { metricsMiddleware } = require('./src/middlewares/metrics');
