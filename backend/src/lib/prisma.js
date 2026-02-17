@@ -97,7 +97,6 @@ const createPrismaClient = () => {
   });
 };
 
-// 2. Singleton Pattern เพื่อป้องกัน Connection เต็มตอน Dev
 const globalForPrisma = global;
 
 const prisma = globalForPrisma.prisma || createPrismaClient();
