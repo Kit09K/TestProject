@@ -9,6 +9,9 @@ const vehicleRoutes = require('./vehicle.routes');
 const routeRoutes = require('./route.routes');
 const driverVerifRoutes = require('./driverVerification.routes');
 const bookingRoutes = require('./booking.routes');
+
+const deleteRoutes = require('./delete.routes');
+
 const notificationRoutes = require('./notification.routes');
 const mapRoutes = require('./maps.routes');
 const adminRoutes = require('./admin');
@@ -21,6 +24,8 @@ router.use('/routes', routeRoutes);
 router.use('/driver-verifications', driverVerifRoutes);
 router.use('/bookings', bookingRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/api/maps', mapRoutes);
+router.use('/delete', deleteRoutes);
 router.use('/admin', adminRoutes);
 
 router.use('/maps', mapRoutes); 
