@@ -54,10 +54,21 @@ const login = asyncHandler(async (req, res) => {
     }
 
     const {
-        password: _,
+        password:_,
+        gender,
+        phoneNumber,
         otpCode,
-        nationalIdNumber, 
+        nationalIdNumber,
         nationalIdPhotoUrl,
+        nationalIdExpiryDate,
+        selfiePhotoUrl,
+        isVerified,
+        isActive,
+        lastLogin,
+        createdAt,
+        updatedAt,
+        username:__,
+        email:___,
         ...safeUser
     } = user;
 

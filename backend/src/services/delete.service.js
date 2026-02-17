@@ -66,7 +66,7 @@ class DeleteService {
     // set isDeleted to true for bookings made by user based on delete request
     static async markDeleteBookings(userId) {
         const markedBookings = await prisma.booking.updateMany({
-            where: { passengerID: userID },
+            where: { passengerId: userId },
             data: { isAnonymized: true },
         });
         return markedBookings;
