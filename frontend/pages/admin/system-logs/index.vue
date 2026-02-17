@@ -3,68 +3,172 @@
         <AdminHeader />
         <AdminSidebar />
 
-        <!-- Main Content -->
-        <main id="main-content" class="main-content mt-16 ml-0 lg:ml-[280px] p-6">
+        <main id="main-content" class="main-content mt-16 ml-0 lg:ml-[280px] p-6 transition-all duration-300">
             <div class="p-6 bg-gray-50 min-h-screen">
                 <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <!-- Header Section -->
+                    
                     <div class="p-6 border-b border-gray-200 bg-white">
-                        <h1 class="text-2xl font-bold text-gray-900">System Logs (บันทึกกิจกรรมระบบ)</h1>
-                        <p class="text-sm text-gray-500 mt-1">บันทึกข้อมูลตาม พ.ร.บ. คอมพิวเตอร์ฯ และการเข้าถึงข้อมูล (PDPA)</p>
-        
-                        <!-- Filter Bar -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-                            <input v-model="filter.search" type="text" placeholder="ค้นหา Username หรือ IP..." class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                            <select v-model="filter.action" class="px-4 py-2 border rounded-lg outline-none">
-                                <option value="">ทุก Action</option>
-                                <option value="CREATE">CREATE</option>
-                                <option value="UPDATE">UPDATE</option>
-                                <option value="DELETE">DELETE</option>
-                                <option value="LOGIN">LOGIN</option>
-                            </select>
-                            <input v-model="filter.date" type="date" class="px-4 py-2 border rounded-lg outline-none">
-                            <button @click="exportLogs" class="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition">
-                                Export CSV
-                            </button>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">System Logs (บันทึกกิจกรรมระบบ)</h1>
+                                <p class="text-sm text-gray-500 mt-1">บันทึกข้อมูลตาม พ.ร.บ. คอมพิวเตอร์ฯ และการเข้าถึงข้อมูล (PDPA)</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-gray-400">Last updated: {{ new Date().toLocaleTimeString() }}</span>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mt-6">
+                            <div class="md:col-span-4 relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input 
+                                    v-model="filter.search" 
+                                    @keyup.enter="handleSearch"
+                                    type="text" 
+                                    placeholder="ค้นหา Username, IP หรือ ID..." 
+                                    class="w-full pl-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                >
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <select v-model="filter.action" @change="handleSearch" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                                    <option value="">ทุก Action (All)</option>
+                                    <option value="LOGIN">LOGIN / LOGOUT</option>
+                                    <option value="CREATE_DATA">CREATE DATA</option>
+                                    <option value="UPDATE_DATA">UPDATE DATA</option>
+                                    <option value="DELETE_DATA">DELETE DATA</option>
+                                    <option value="ACCESS_SENSITIVE_DATA">SENSITIVE ACCESS</option>
+                                    <option value="SOS_TRIGGERED">SOS ALERT</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <input 
+                                    v-model="filter.date" 
+                                    @change="handleSearch"
+                                    type="date" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                            </div>
+
+                            <div class="md:col-span-2 flex gap-2">
+                                <button @click="handleSearch" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
+                                    ค้นหา
+                                </button>
+                                <button @click="exportLogs" class="flex-none bg-green-600 text-white px-3 py-2 rounded-lg font-medium hover:bg-green-700 transition shadow-sm" title="Export CSV">
+                                    <i class="fas fa-file-csv"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Table Section -->
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto relative min-h-[400px]">
+                        
+                        <div v-if="pending" class="absolute inset-0 bg-white/80 z-10 flex items-center justify-center backdrop-blur-sm">
+                            <div class="flex flex-col items-center">
+                                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-2"></div>
+                                <span class="text-sm text-gray-500 font-medium">กำลังโหลดข้อมูล...</span>
+                            </div>
+                        </div>
+
                         <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-600 uppercase text-xs font-bold">
-                                    <th class="px-6 py-4">Timestamp</th>
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr class="text-gray-600 uppercase text-xs font-bold border-b border-gray-200">
+                                    <th class="px-6 py-4 whitespace-nowrap">Timestamp</th>
                                     <th class="px-6 py-4">User / IP</th>
                                     <th class="px-6 py-4">Action</th>
                                     <th class="px-6 py-4">Target Table</th>
-                                    <th class="px-6 py-4">Details</th>
+                                    <th class="px-6 py-4 w-1/3">Details</th>
                                 </tr>
                             </thead>
+                            
                             <tbody class="divide-y divide-gray-100">
-                                <tr v-for="log in filteredLogs" :key="log.id" class="hover:bg-blue-50 transition-colors">
-                                    <td class="px-6 py-4 text-sm text-gray-600">
-                                        {{ formatDate(log.timestamp) }}
+                                <tr v-if="!pending && (!logResponse?.data || logResponse.data.length === 0)">
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <i class="fas fa-search text-3xl mb-3 text-gray-300"></i>
+                                            <p>ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</p>
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm font-bold text-gray-900">{{ log.user?.username || 'System' }}</div>
-                                        <div class="text-xs text-gray-400">{{ log.ipAddress }}</div>
+                                </tr>
+
+                                <tr v-for="log in logResponse?.data" :key="log.id" class="hover:bg-blue-50/50 transition-colors">
+                                    <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
+                                        <div class="font-medium">{{ formatDate(log.timestamp).date }}</div>
+                                        <div class="text-xs text-gray-400">{{ formatDate(log.timestamp).time }}</div>
                                     </td>
+
                                     <td class="px-6 py-4">
-                                        <span :class="actionBadge(log.action)" class="px-2 py-1 rounded-md text-xs font-bold">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold">
+                                                {{ (log.user?.username || 'SYS').substring(0,2).toUpperCase() }}
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-bold text-gray-900">
+                                                    {{ log.user?.username || 'System (Auto)' }}
+                                                </div>
+                                                <div class="text-xs text-gray-500 font-mono">
+                                                    IP: {{ log.ipAddress }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-6 py-4">
+                                        <span :class="actionBadge(log.action)" class="px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap inline-flex items-center gap-1">
+                                            <i :class="actionIcon(log.action)"></i>
                                             {{ log.action }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-blue-600">
-                                        {{ log.targetTable }} <span class="text-gray-400 text-xs">({{ log.targetId }})</span>
+
+                                    <td class="px-6 py-4 text-sm">
+                                        <div v-if="log.targetTable" class="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
+                                            {{ log.targetTable }}
+                                        </div>
+                                        <div v-else class="text-gray-400 italic">-</div>
+                                        
+                                        <div v-if="log.targetId" class="text-xs text-gray-400 mt-1 font-mono truncate max-w-[150px]" :title="log.targetId">
+                                            ID: {{ log.targetId }}
+                                        </div>
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
-                                        {{ JSON.stringify(log.details) }}
+
+                                    <td class="px-6 py-4">
+                                        <div class="text-xs text-gray-600 font-mono bg-gray-50 p-2 rounded border border-gray-100 overflow-x-auto max-w-xs max-h-20 scrollbar-thin">
+                                            {{ formatDetails(log.details) }}
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <span class="text-sm text-gray-600">
+                            แสดงหน้า <span class="font-bold">{{ page }}</span> จาก <span class="font-bold">{{ logResponse?.pagination?.totalPages || 1 }}</span> 
+                            (ทั้งหมด {{ logResponse?.pagination?.total || 0 }} รายการ)
+                        </span>
+
+                        <div class="flex gap-2">
+                            <button 
+                                @click="page--" 
+                                :disabled="page === 1 || pending"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <i class="fas fa-chevron-left mr-1"></i> ก่อนหน้า
+                            </button>
+                            
+                            <button 
+                                @click="page++" 
+                                :disabled="page >= (logResponse?.pagination?.totalPages || 1) || pending"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                ถัดไป <i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </main>
@@ -72,69 +176,130 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, watch } from 'vue'
+// นำเข้า Components
 import AdminHeader from '~/components/admin/AdminHeader.vue'
 import AdminSidebar from '~/components/admin/AdminSidebar.vue'
 
-const logs = ref([])
+// --- Config ---
+const config = useRuntimeConfig()
+// ถ้าไม่ได้ set public.apiBase ไว้ใน nuxt.config ให้ใช้ fallback
+const apiBase = config.public.apiBase || 'http://localhost:3000/api'
+
+// --- State ---
+const page = ref(1)
+const limit = ref(20)
 const filter = ref({
-  search: '',
-  action: '',
-  date: ''
+    search: '',
+    action: '',
+    date: ''
 })
 
-onMounted(async () => {
-  logs.value = [
-    {
-        id: "LOG001",
-        timestamp: "2024-03-20T14:05:12Z",
-        userId: "U001",
-        user: { username: "somchai_admin" },
-        action: "DELETE",
-        ipAddress: "192.168.1.105",
-        targetTable: "Vehicle",
-        targetId: "VEH_99",
-        details: { reason: "หมดอายุการใช้งาน" }
+// --- Data Fetching ---
+// ใช้ useFetch ยิงไปที่ API Backend ของเรา
+const { data: logResponse, pending, refresh } = await useFetch(`${apiBase}/admin/logs`, {
+    // ส่ง Token ไปด้วย (ถ้ามีการทำ Auth)
+    // headers: { Authorization: `Bearer ${token.value}` },
+    query: {
+        page: page,
+        limit: limit,
+        // ส่งค่า filter ไปทีละตัว
+        search: filter.value.search,
+        action: filter.value.action,
+        date: filter.value.date
     },
-    {
-        id: "LOG002",
-        timestamp: "2024-03-20T15:20:00Z",
-        userId: "U002",
-        user: { username: "kanda_driver" },
-        action: "UPDATE",
-        ipAddress: "1.10.222.15",
-        targetTable: "Route",
-        targetId: "RT_882",
-        details: { field: "price", old: 100, new: 120 }
-    }
-  ]
+    // ให้ refresh อัตโนมัติเมื่อค่าเหล่านี้เปลี่ยน
+    watch: [page] 
 })
 
-const filteredLogs = computed(() => {
-  return logs.value.filter(log => {
-    const matchSearch = log.user?.username.toLowerCase().includes(filter.search.toLowerCase()) || 
-                        log.ipAddress.includes(filter.search)
-    const matchAction = filter.action === '' || log.action === filter.action
-    const matchDate = filter.date === '' || log.timestamp.includes(filter.date)
-    return matchSearch && matchAction && matchDate
-  })
-})
+// --- Methods ---
 
+// ฟังก์ชันค้นหา (Reset กลับหน้า 1 เมื่อค้นหาใหม่)
+const handleSearch = () => {
+    page.value = 1
+    refresh()
+}
+
+// Format วันที่ให้สวยงาม แยกวันที่กับเวลา
 const formatDate = (dateStr) => {
-  return new Date(dateStr).toLocaleString('th-TH')
+    if (!dateStr) return { date: '-', time: '' }
+    const d = new Date(dateStr)
+    return {
+        date: d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }),
+        time: d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    }
 }
 
+// จัดรูปแบบ JSON Details ให้แสดงผลได้ดีขึ้น
+const formatDetails = (details) => {
+    if (!details) return '-'
+    try {
+        // ถ้าเป็น Object ให้แปลงเป็น String, ถ้าเป็น String อยู่แล้วก็ใช้เลย
+        const str = typeof details === 'object' ? JSON.stringify(details, null, 2) : details
+        return str.replace(/[{}"]/g, '').replace(/,/g, ', ') // ลบวงเล็บปีกกาและ quote ให้ดูสะอาดตา
+    } catch (e) {
+        return String(details)
+    }
+}
+
+// เลือกสี Badge ตาม Action Enum
 const actionBadge = (action) => {
-  const styles = {
-    'DELETE': 'bg-red-100 text-red-600',
-    'CREATE': 'bg-green-100 text-green-600',
-    'UPDATE': 'bg-blue-100 text-blue-600',
-    'LOGIN': 'bg-purple-100 text-purple-600'
-  }
-  return styles[action] || 'bg-gray-100 text-gray-600'
+    const map = {
+        'LOGIN': 'bg-purple-100 text-purple-700 border-purple-200',
+        'LOGOUT': 'bg-gray-100 text-gray-600 border-gray-200',
+        'CREATE_DATA': 'bg-green-100 text-green-700 border-green-200',
+        'UPDATE_DATA': 'bg-blue-100 text-blue-700 border-blue-200',
+        'DELETE_DATA': 'bg-red-100 text-red-700 border-red-200',
+        'ACCESS_SENSITIVE_DATA': 'bg-amber-100 text-amber-800 border-amber-200',
+        'APPROVE_VERIFICATION': 'bg-teal-100 text-teal-700 border-teal-200',
+        'REJECT_VERIFICATION': 'bg-pink-100 text-pink-700 border-pink-200',
+        'SOS_TRIGGERED': 'bg-red-600 text-white border-red-600 animate-pulse'
+    }
+    return map[action] || 'bg-gray-100 text-gray-600 border-gray-200'
 }
 
+// เลือกไอคอนตาม Action
+const actionIcon = (action) => {
+    const map = {
+        'LOGIN': 'fas fa-sign-in-alt',
+        'LOGOUT': 'fas fa-sign-out-alt',
+        'CREATE_DATA': 'fas fa-plus-circle',
+        'UPDATE_DATA': 'fas fa-edit',
+        'DELETE_DATA': 'fas fa-trash-alt',
+        'ACCESS_SENSITIVE_DATA': 'fas fa-eye',
+        'APPROVE_VERIFICATION': 'fas fa-check-circle',
+        'REJECT_VERIFICATION': 'fas fa-times-circle',
+        'SOS_TRIGGERED': 'fas fa-bell'
+    }
+    return map[action] || 'fas fa-circle'
+}
+
+// ฟังก์ชัน Export CSV
 const exportLogs = () => {
-  alert('Exporting data as CSV...')
+    // สร้าง URL พร้อม Query Params
+    const queryParams = new URLSearchParams({
+        search: filter.value.search,
+        action: filter.value.action,
+        date: filter.value.date
+    }).toString()
+    
+    // เปิดหน้าต่างใหม่เพื่อดาวน์โหลดไฟล์
+    // (Backend ต้องมี Route /admin/logs/export รองรับ ตามที่เคยคุยกัน)
+    window.open(`${apiBase}/admin/logs/export?${queryParams}`, '_blank')
 }
 </script>
+
+<style scoped>
+/* Custom Scrollbar สำหรับช่อง Details */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+</style>
