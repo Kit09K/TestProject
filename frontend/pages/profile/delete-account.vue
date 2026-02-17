@@ -130,7 +130,7 @@ const toggleAll = () => {
 }
 
 watch(selectedItems, (newVal) => {
-    if (newVal.length === dataItems.value.length) {
+    if (newVal.length > 0) {
         selectAll.value = true
     } else {
         selectAll.value = false
@@ -171,13 +171,15 @@ const confirmDelete = async () => {
             sendEmailCopy: sendEmail.value
         }
     })
-
+        
+    if (selectAll.value) {
         logout()
-
         alert('ลบข้อมูลเรียบร้อยแล้ว')
         selectedItems.value = []
         selectAll.value = false
         confirmInput.value = ''
+    }
+
     } catch (error) {
         console.error('Error:', error)
         alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์')
