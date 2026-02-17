@@ -162,7 +162,7 @@ const logout = asyncHandler(async (req, res) => {
                 ipAddress: ipAddress,
                 userAgent: req.headers['user-agent'],
                 targetTable: 'User',
-                targetId: userId || 'unknown',
+                targetId: userId ? userId.toString() : 'unknown',
                 details: { 
                     message: userId ? 'User logged out successfully' : 'Logout called without valid user context' 
                 }
@@ -178,4 +178,4 @@ const logout = asyncHandler(async (req, res) => {
     });
 });
 
-module.exports = { login, changePassword,logout };
+module.exports = { login, changePassword,logout,updateMe };
